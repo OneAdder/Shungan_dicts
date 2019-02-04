@@ -2,13 +2,33 @@ import re
 import json
 from time import sleep
 
+broken_symbols_check = {'H', '!', '7', 'R', 'B', '}', 'V', 'Ы', 'J', 'E', '́', '4', '£', 'Э', 'U', '-', '"', '„', '0', 'Ҳ', 'Щ', 'G', '*', '[', 'K', ':', '«', '^', '#', '+', 'С', 'Y', '%', '/', '_', '2', '°', '9', ')', 'S', '5', ']', '§', '>', '1', '<', 'Ё', '$', '̌', 'Я', 'Ю', '̊', '=', ';', '8', '“', 'O', '™', '\\', 'Ҙ', '?', 'P', '\xad', 'Ʒ', 'T', 'A', '6', '3', '|', '•', 'Z', '№', 'L', '(', 'D', 'I', '—', 'Q', '»', 'M', 'Ь', "'", '■', 'Х', '&', 'F', '®', '~'}
+
 with open('karamshoev.txt', 'r', encoding="UTF-8") as f:
-    lines = f.readlines()
-    lines[0] = lines[0].replace('\ufeff', '')
+    b_lines = f.readlines()
+    b_lines[0] = b_lines[0].replace('\ufeff', '')
+    lines = []
+    for line in b_lines:
+        new_line = ''
+        for sym in line:
+            if sym not in broken_symbols_check:
+                new_line += sym
+        lines.append(new_line)
+
+broken_symbols = []
 
 class Karamshoev_line(object):
     def __init__(self, line):
         self.line = line
+
+    def translate(self, word):
+        with open('karamshoev-zarubin.json', 'r', encoding='utf-8') as f:
+            mapping = json.load(f)
+        result = ''
+        for sym in word:
+            result += mapping[sym]
+            broken_symbols.append(sym)
+        return result
 
     def get_shung_lex(self):
         line = self.line
@@ -19,12 +39,12 @@ class Karamshoev_line(object):
             lexeme = re.sub('(\.|,| )', '', lexeme)
             if re.findall('\(.*?\)', lexeme):
                 #print(lexeme)
-                lexeme1 = re.sub('\(.*?\)', '', lexeme)
-                lexeme2 = re.sub('(\(|\))', '', lexeme)
+                lexeme1 = self.translate(re.sub('\(.*?\)', '', lexeme))
+                lexeme2 = self.translate(re.sub('(\(|\))', '', lexeme))
                 result.append(lexeme1)
                 result.append(lexeme2)
             else:
-                result.append(lexeme)
+                result.append(self.translate(lexeme))
         return result
 
     def get_data(self):
@@ -95,4 +115,6 @@ def to_sql():
     for line in lines:
         print(Karamshoev_line(line).get_sql_query())
 
-print(to_json())
+for line in lines:
+    print(Karamshoev_line(line).get_shung_lex())
+#print(set(broken_symbols))
