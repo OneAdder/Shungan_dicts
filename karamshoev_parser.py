@@ -176,7 +176,7 @@ def to_json():
         doc['zarubin_data'] = prepare_zarubin_data(data)
         j.append(doc)
     
-    with open('karamshoev.json', 'w') as f:
+    with open('matched.json', 'w') as f:
         json.dump(j, f, indent=4, ensure_ascii=False)
 
 to_json()
