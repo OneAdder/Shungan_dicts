@@ -90,19 +90,21 @@ class Karamshoev_line(object):
             karamshoev_data = {}
             
             
-            karamshoev_data['russian'] = [tr for tr in description if not (tr.startswith(' ш.') or tr.startswith(' б. ') or tr.startswith('ш.') or tr.startswith('б.'))]
+            karamshoev_data['russian'] = [tr for tr in description] #if not (tr.startswith(' ш.') or tr.startswith(' б. ') or tr.startswith('ш.') or tr.startswith('б.'))]
             if karamshoev_data['russian']:
                 if karamshoev_data['russian'][0].startswith(', '):
                     karamshoev_data['russian'][0] = karamshoev_data['russian'][0][2:]
             if gender:
                 karamshoev_data['gender'] = gender[0]
+            '''
             example_sh = [ex.replace(' ш. ', '') for ex in description if ex and (ex.startswith(' ш.') or ex.startswith('ш.'))]
             if example_sh:
+                print(description)
                 karamshoev_data['example_sh'] = example_sh
             example_b = [ex.replace(' б. ', '') for ex in description if ex and (ex.startswith(' б.') or ex.startswith('б.'))]
             if example_b:
                 karamshoev_data['example_b'] = example_b
-            
+            '''
             js_line['lexeme'] = lex
             js_line['karamshoev_data'] = karamshoev_data
 
