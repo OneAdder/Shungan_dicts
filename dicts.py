@@ -32,8 +32,8 @@ def fynd(word):
 
     Parameter word: str
         Word in Karamshoev or Zarubin graphics.
-    Returns result: dictionary
-        {
+    Returns result: list
+        [
             'karamshoev_data': dict({
                 'russian': list of variants with examples,
                 'gender': str,
@@ -53,7 +53,7 @@ def fynd(word):
                 <<end example>>
             }),
             ...
-        }
+        ]
     """
     word = word.lower()
     result = []

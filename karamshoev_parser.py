@@ -1,3 +1,21 @@
+"""Script that parses Karamshoev dictionary and matches it with Zarubin
+
+Variables:
+    broken_symbols_check: list of str
+        Symbols that should not be in the words from Karamshoev dictionary. But they are.
+    zarubin_csv: pandas.DataFrame
+        Stuff read from the file 'zarubin_85-288.csv' in current directory.
+    zarubin_lexemes: list of str:
+        Lexemes (without stress from Zarubin dictionary.
+    mapping: dictionary
+        Karamshoev -> Zarubin symbols mapping.
+    lines: list of str
+        Fixed readlined file 'karamshoev.txt' from current directory.
+        It is Karamshoev dictionary. It was оцифрован automatically so there is a lot of garbage (bear that in mind).
+
+Class Karamshoev line and functions get_zarubin_data, prepare_zarubin_data and to_json.
+"""
+
 import re
 import json
 from time import sleep
@@ -11,7 +29,7 @@ zarubin_lexemes = [lexeme.replace('-', '').replace('́', '') for lexeme in tuple
 zarubin_csv = zarubin_csv.assign(lexeme=zarubin_lexemes)
 
 with open('karamshoev-zarubin.json', 'r', encoding='utf-8') as f:
-            mapping = json.load(f)
+    mapping = json.load(f)
 
 with open('karamshoev.txt', 'r', encoding="UTF-8") as f:
     b_lines = f.readlines()
@@ -27,10 +45,23 @@ with open('karamshoev.txt', 'r', encoding="UTF-8") as f:
 broken_symbols = []
 
 class Karamshoev_line(object):
+    """This object processes one line from Karamshoev dictionary"""
     def __init__(self, line):
+        """init
+
+        Parameter line: str
+            A line from Karamshoev dictionary.
+        """
         self.line = line
 
     def translate(self, word, output='z'):
+        """Translates from Karamshoev to Zarubin graphics systems
+
+        Parameter word: str
+            Word how it is in Karamshoev dictionary.
+        Returns result: str
+            Word how it should be in Zarubin dictionary.
+        """
         if output == 'k':
             return word
         result = ''
@@ -43,6 +74,13 @@ class Karamshoev_line(object):
         return result
 
     def get_shung_lex(self):
+        """Selects all the lexemes hidden in the line
+        
+        Returns tuple(
+            list of lexemes(str),
+            Map object of lexemes translated to Zarubin graphics
+        )
+        """
         line = self.line
         words = line.split()
         lexemes = [word for word in words if word.isupper() and not word.startswith('-') and not (len(word) == 2 and word.endswith(')'))]
@@ -61,6 +99,10 @@ class Karamshoev_line(object):
         return (result, map(self.translate, result))
 
     def get_data(self):
+        """Selects everything else useful from the line
+
+        returns: list of data(str)
+        """
         lexemes = self.get_shung_lex()
         line = self.line
         words = []
@@ -73,7 +115,33 @@ class Karamshoev_line(object):
         return description.split(';')
 
     def get_json(self):
-        """
+        """Makes dictinary of all the useful data from the line and matches it with Zarubin counterparts
+
+        Returns list:
+        [
+            'lexeme': str (lexeme from Karamshoev dictionary),
+            'karamshoev_data': dict({
+                'russian': list of variants with examples,
+                'gender': str,
+            }),
+            'bingo': int (1 if found in both dictionaries, 0 if only in Karamshoev),
+            'lexeme_z': str (lexeme from zarubin dictionary),
+            'zarubin_data': dict({
+                <<example, I don't know what all this exactly is>>
+                "shughni": "parwárθ",
+                "easy_shughni": "parwarθ,parwuxt,parwaxt,parwarθt,parwuxč,parwixc,parwaxč,parwaxt,parwixc,parwixtow",
+                "pst": "parwúx̌t",
+                "pst.pl": "parwax̌t",
+                "prs.3sg": "parwárθt",
+                "ptcp": "parwúx̌č",
+                "ptcp.f": "parwíx̌c, parwáx̌č",
+                "ptcp.pl": "parwáx̌t, parwíx̌c",
+                "inf": "parwix̌tṓw",
+                "russian": "соскальзывать, падать в воду с меха для плавания (мало употребителен)"
+                <<end example>>
+            }),
+            ...
+        ]
         """
         js = []
         js_line = {}
@@ -126,6 +194,7 @@ class Karamshoev_line(object):
         return js
 
     def get_sql_query(self):
+        """Not working"""
         query = "INSERT INTO karamshoev VALUES (NULL, ?, ?, ?, ?, ?, ?)"
         queries = []
         js = self.get_json()
@@ -150,11 +219,36 @@ class Karamshoev_line(object):
             conn.commit()
 
 def get_zarubin_data(karamshoev_lexeme):
+    """Searches for the word in Zarubin dictionary
+
+    Parameter karamshoev_lexeme: str
+        A lexeme from Karamshoev dictionary IN ZARUBIN GRAPHICS (it's important).
+    Returns dict:
+        {
+            'shughni': 'parwárθ',
+            'easy_shughni': 'parwarθ,parwuxt,parwaxt,parwarθt,parwuxč,parwixc,parwaxč,parwaxt,parwixc,parwixtow',
+            'pst': 'parwúx̌t',
+            'pst.pl': 'parwax̌t',
+            'prs.3sg': 'parwárθt',
+            'ptcp': 'parwúx̌č',
+            'ptcp.f': 'parwíx̌c, parwáx̌č',
+            'ptcp.pl': 'parwáx̌t, parwíx̌c',
+            'inf': 'parwix̌tṓw',
+            'russian': 'соскальзывать, падать в воду с меха для плавания (мало употребителен)'
+        }
+    """
     if karamshoev_lexeme in tuple(zarubin_csv.lexeme):
         data = zarubin_csv[zarubin_csv.lexeme == karamshoev_lexeme].to_dict()
         return prepare_zarubin_data(data)
 
 def prepare_zarubin_data(data):
+    """Makes normal dictionary from pandas.DataFrame.to_dict()
+
+    Parameter data:
+        pandas.DataFrame.to_dict()
+    Returns:
+        Normal dictionary (without indexes).
+    """
     result = {}
     keys = data.keys()
     for key in keys:
@@ -164,6 +258,34 @@ def prepare_zarubin_data(data):
     return result
 
 def to_json():
+    """Goes through Karamshoev dictinary finding mathing words from Zarubin, then goes through Zarubin dictionary adding remaining stuff
+
+    Returns list with two dictionaries and writes it into 'matched.json'.
+        [
+            'lexeme': str (lexeme from Karamshoev dictionary),
+            'karamshoev_data': dict({
+                'russian': list of variants with examples,
+                'gender': str,
+            }),
+            'bingo': int (1 if found in both dictionaries, 0 if only in Karamshoev),
+            'lexeme_z': str (lexeme from zarubin dictionary),
+            'zarubin_data': dict({
+                <<example, I don't know what all this exactly is>>
+                "shughni": "parwárθ",
+                "easy_shughni": "parwarθ,parwuxt,parwaxt,parwarθt,parwuxč,parwixc,parwaxč,parwaxt,parwixc,parwixtow",
+                "pst": "parwúx̌t",
+                "pst.pl": "parwax̌t",
+                "prs.3sg": "parwárθt",
+                "ptcp": "parwúx̌č",
+                "ptcp.f": "parwíx̌c, parwáx̌č",
+                "ptcp.pl": "parwáx̌t, parwíx̌c",
+                "inf": "parwix̌tṓw",
+                "russian": "соскальзывать, падать в воду с меха для плавания (мало употребителен)"
+                <<end example>>
+            }),
+            ...
+        ]
+    """
     j = []
     for line in lines:
         jso = Karamshoev_line(line).get_json()
@@ -181,7 +303,10 @@ def to_json():
     with open('matched.json', 'w') as f:
         json.dump(j, f, indent=4, ensure_ascii=False)
 
-to_json()
+    return j
+
+if __name__ == '__main__':
+    to_json()
 
 '''
 def to_sql():
