@@ -1,3 +1,4 @@
+"""Simple QT app for searching in Karamshoev and Zarubin dictionaries"""
 import sys
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtWidgets import QMainWindow, QWidget, QLabel, QLineEdit
@@ -9,6 +10,13 @@ with open('karamshoev-zarubin.json', 'r', encoding='utf-8') as f:
     mapping = json.load(f)
 
 def translate(word, output='z'):
+    """Translates from Karamshoev to Zarubin graphics systems
+
+    Parameter word: str
+        Word how it is in Karamshoev dictionary.
+    Returns result: str
+        Word how it should be in Zarubin dictionary.
+    """
     if output == 'k':
         return word
     result = ''
@@ -20,6 +28,33 @@ def translate(word, output='z'):
     return result
 
 def fynd(word):
+    """Finds the word in the dictionaries.
+
+    Parameter word: str
+        Word in Karamshoev or Zarubin graphics.
+    Returns result: dictionary
+        {
+            'karamshoev_data': dict({
+                'russian': list of variants with examples,
+                'gender': str,
+            }),
+            'zarubin_data': dict({
+                <<example, I don't know what all this exactly is>>
+                "shughni": "parwárθ",
+                "easy_shughni": "parwarθ,parwuxt,parwaxt,parwarθt,parwuxč,parwixc,parwaxč,parwaxt,parwixc,parwixtow",
+                "pst": "parwúx̌t",
+                "pst.pl": "parwax̌t",
+                "prs.3sg": "parwárθt",
+                "ptcp": "parwúx̌č",
+                "ptcp.f": "parwíx̌c, parwáx̌č",
+                "ptcp.pl": "parwáx̌t, parwíx̌c",
+                "inf": "parwix̌tṓw",
+                "russian": "соскальзывать, падать в воду с меха для плавания (мало употребителен)"
+                <<end example>>
+            }),
+            ...
+        }
+    """
     word = word.lower()
     result = []
     with open('matched.json', 'r', encoding='utf-8') as f:
@@ -39,6 +74,21 @@ def fynd(word):
     return result
 
 def make_readable(search_result):
+    """Makes the results human readable. Preserves only translation
+
+    Parameter search_result: dict
+        The dictionary returned by the fynd function
+    Returns: str
+        Karamshoev:
+        1) first translation
+        2) second translation
+        ...
+
+        Zarubin:
+        1) first translation
+        2) second translation
+        ...
+    """
     k = []
     z = []
     for result in search_result:
@@ -69,7 +119,19 @@ def make_readable(search_result):
             
 
 class MainWindow(QMainWindow):
+    """Class with simple QT window
+
+    Bases on QMainWindow.
+    Contains:
+        name_label: a QLabel saying: 'Word:'
+        line: an input QLineEdit
+        button: a QPushButton that triggers the search method
+        result_label: a QLabel with the search result
+        search: method
+            Takes line.text, processes it with fynd and make_readable functions and sets result_label to search result.
+    """
     def __init__(self):
+        """Initializing the window"""
         QMainWindow.__init__(self)
 
         self.setMinimumSize(QSize(920, 540))    
@@ -83,7 +145,7 @@ class MainWindow(QMainWindow):
         self.line.resize(200, 32)
         self.name_label.move(20, 20)
 
-        button = QPushButton('OK', self)
+        button = QPushButton('Search', self)
         button.clicked.connect(self.search)
         button.resize(200,32)
         button.move(80, 60)
@@ -93,6 +155,7 @@ class MainWindow(QMainWindow):
         self.result_label.resize(800, 400)
 
     def search(self):
+        """Finding the result"""
         search_result = fynd(self.line.text())
         find_output = make_readable(search_result)
         self.result_label.setText(find_output)
